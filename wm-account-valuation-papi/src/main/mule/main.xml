@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="wm-account-summary-flow" doc:id="f80900a0-f3f3-43d6-83e4-27f70a30e778" >
+		<logger level="INFO" doc:name="startLogger" doc:id="7b5a9d78-4d9d-471f-bc6b-5f366a8cf13d" />
+		<set-variable value="#[attributes.queryParams.accountType]" doc:name="accountype" doc:id="70112c73-b976-4fbd-bc7b-431a45616017" variableName="accountype"/>
+		<http:request method="GET" doc:name="Request" doc:id="46580e5d-1eb4-400d-ba6c-6e9c1db4674a" responseTimeout="300000" config-ref="HTTP_Request_configuration" path="${accountsummary.path}">
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	"id" : attributes.uriParams.clientId
+}]]]></http:uri-params>
+		</http:request>
+		<parallel-foreach doc:name="Parallel For Each" doc:id="ec9e4060-9a86-4649-98da-7706406d3e68" collection="#[payload.accountId]" target="accountDetails">
+			<http:request method="GET" doc:name="Account Details" doc:id="991cdb38-d552-42af-9f3e-fcaee5756cde" config-ref="HTTP_Request_configuration" path="${accountsummary.accountDetails}" responseTimeout="300000">
+			<http:uri-params><![CDATA[#[output application/java
+---
+{
+	"accountId" : payload
+}]]]></http:uri-params>
+		</http:request>
+		</parallel-foreach>
+		<set-variable value="#[output application/json --- vars.accountDetails..accountDetails]" doc:name="accountDetailsJson" doc:id="ee49a04a-a3d3-4203-9cdf-e377947cc77f" variableName="accountDetailsJson"/>
+		<choice doc:name="Choice" doc:id="60d1de23-d2f9-48ac-b79d-149b2a5aeb64" >
+			<when expression="#[not isEmpty(vars.accountype)]">
+				<ee:transform doc:name="filter by accountype" doc:id="36e86029-fda2-4fe2-b1dc-d41e5c757fe4">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+//var accType = attributes.queryParams.accountType
+var updatedPayload = payload filter (lower($.accountType) == lower(vars.accountype))
+---
+//payload filter (lower($.accountType) == lower(vars.accountype))
+{
+  "clientId": updatedPayload[0].clientId,
+  "clientaccountnumber": updatedPayload[0].clientAccountNumber,
+  "commDate": updatedPayload[0].commDate,
+  "$(vars.accountype)": {
+    //"summary": "",
+    "Accounts": updatedPayload map (obj, idx) -> {
+        "AccountId": obj.accountId,
+        "Balance": (vars.accountDetailsJson filter ($.accountId == obj.accountId)).bankingBalanceAmount[0],
+        "ProductCode": (vars.accountDetailsJson filter ($.accountId == obj.accountId)).productCode[0],
+    }
+  }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="8bf491ae-8c05-44b8-8bcf-bae0d5c3ef1d" />
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="EndLogger" doc:id="f3cbce28-81f5-4e53-acee-2e91d83e1c64" />
+	</flow>
+</mule>

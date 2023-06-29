@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<global-property doc:name="Global Property" doc:id="73f6d032-5121-4767-912f-53a84c5e71df" name="mule.env" value="dev" />
+	<configuration-properties doc:name="Configuration properties" doc:id="0a063151-a016-42a8-a216-94659d3fea6d" file="properties\secure-${mule.env}.yaml" />
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="826bc978-9886-48eb-882c-f5b4b5ba06f8" >
+		<http:request-connection host="${accountsummary.host}" />
+	</http:request-config>
+	<http:listener-config name="wm-account-valuation-papi-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+</mule>

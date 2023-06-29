@@ -1,0 +1,4 @@
+accountsummary:
+  host: "njc-rds-sapi.us-e2.cloudhub.io"
+  path: "/summary/{id}"
+  accountDetails: "/account/{accountId}/details"
